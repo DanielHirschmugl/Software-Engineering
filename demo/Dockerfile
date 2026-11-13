@@ -1,0 +1,18 @@
+FROM maven:3.9-eclipse-temurin-21 AS deps
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -q dependency:go-offline
+COPY src ./src
+
+# JUnit-Tests: docker compose run --rm test
+FROM deps AS test
+CMD ["mvn", "test"]
+
+FROM deps AS build
+RUN mvn -q package -DskipTests
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
